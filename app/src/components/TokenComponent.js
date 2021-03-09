@@ -22,7 +22,7 @@ class TokenComponent extends Component {
             authEndpoint: this.authBaseUrl + 'organizations',
             tenant: '{type the tenant id}',
             accountType: 'all',
-            authScope: '',
+            authScope: '.default',
             signinScope: 'profile',
             account: null,
             idTokenClaims: null,
@@ -110,14 +110,14 @@ class TokenComponent extends Component {
             case 'all':
                 authScope = 'user.read people.read group.read.all';
                 break;
-                case 'api1':
-                    authScope = process.env.REACT_APP_API1_SCOPE;
-                    break;
-                case 'api2':
-                    authScope = process.env.REACT_APP_API2_SCOPE;
-                    break;
-                default:
-                authScope = '';
+            case 'api1':
+                authScope = process.env.REACT_APP_API1_SCOPE;
+                break;
+            case 'api2':
+                authScope = process.env.REACT_APP_API2_SCOPE;
+                break;
+            default:
+                authScope = '.default';
         }
         this.setState({ authScope: authScope});
 
@@ -213,7 +213,23 @@ class TokenComponent extends Component {
                         },
                         (err) => {
                             this.setState({resultDetails: ''});
-                            this.showMessage('danger', 'Error', err.message)
+                            var message = err.message;
+                            if (err.response) {
+                                switch (err.response.status) {
+                                    case 403:
+                                        message = message + ', verify that you selected the right scope to call the API!';
+                                        break;
+                                    case 500:
+                                        message =  message + ', did you remember to update the Azure Function Configuration?';
+                                        break;
+                                    default:
+                                        break;
+                                    }
+                            }
+                            else {
+                                message = err.message === 'Network Error' ? message + ', did you remember to configure CORS for the Azure Function?' : message;
+                            }
+                            this.showMessage('danger', 'Error', message)
                             console.log(err);
                         }
                     )
